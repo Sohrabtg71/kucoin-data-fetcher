@@ -45,5 +45,5 @@ def main():
             print(f"داده‌های {symbol} ذخیره شد.")
         time.sleep(1)  # جلوگیری از بلاک شدن
 
-if name == "main":
+if __name__ == "__main__":
     main()
