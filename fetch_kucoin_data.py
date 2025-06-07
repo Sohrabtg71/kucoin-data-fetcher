@@ -22,29 +22,34 @@ def fetch_candles(symbol, interval='1hour', limit=50):
         'symbol': symbol,
         'type': interval
     }
-    response = requests.get(url, params=params)
-    
     try:
-        response_json = response.json()
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            response_json = response.json()
+            if 'data' not in response_json:
+                print(f"❌ پاسخ نامعتبر برای {symbol}: {response_json}")
+                return None
+
+            data = response_json['data']
+            if not data:
+                print(f"ℹ️ دیتای خالی برای {symbol}")
+                return None
+
+            df = pd.DataFrame(data, columns=[
+                'time', 'open', 'close', 'high', 'low', 'volume', 'turnover'
+            ])
+            df['time'] = pd.to_datetime(df['time'], unit='s')
+            return df
+        else:
+            try:
+                response_json = response.json()
+                print(f"❌ خطا برای {symbol}: {response_json}")
+            except:
+                print(f"❌ خطا در دریافت JSON برای {symbol}")
+            return None
     except Exception as e:
-        print(f"❌ JSON decode error for {symbol}: {e}")
-        print("متن پاسخ:", response.text)
+        print(f"⚠️ استثنا در دریافت داده برای {symbol}: {e}")
         return None
-
-    if 'data' not in response_json:
-        print(f"❌ پاسخ نامعتبر برای {symbol} - بدون 'data':", response_json)
-        return None
-
-    data = response_json['data']
-    if not data:
-        print(f"ℹ️ هیچ دیتایی برای {symbol} برنگشت.")
-        return None
-
-    df = pd.DataFrame(data, columns=[
-        'time', 'open', 'close', 'high', 'low', 'volume', 'turnover'
-    ])
-    df['time'] = pd.to_datetime(df['time'], unit='ms')  # توجه: داده‌های KuCoin به احتمال زیاد timestamp بر حسب میلی‌ثانیه است
-    return df
 
 def main():
     symbols = get_top_symbols()
@@ -54,7 +59,7 @@ def main():
             filename = f"{symbol.replace('-', '_')}_candles.csv"
             df.to_csv(filename, index=False)
             print(f"✅ داده‌های {symbol} ذخیره شد.")
-        time.sleep(1)  # جلوگیری از بلاک شدن
+        time.sleep(1)  # جلوگیری از بلاک شدن توسط KuCoin API
 
-if __name__ == "__main__":
+if name == "main":
     main()
